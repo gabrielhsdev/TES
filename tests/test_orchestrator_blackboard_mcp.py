@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 os.environ.setdefault("GROQ_API_KEY", "test-key")
+os.environ["AGENT_MODE"] = "local"
 
 import mcp_server
 from extractor import extract_article
@@ -75,13 +76,43 @@ class OrchestratorFlowTest(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(tmp, report["arquivo"])))
             self.assertTrue(os.path.exists(os.path.join(tmp, report["blackboard"])))
 
+    def test_analyze_reports_agent_errors_without_local_replacement(self):
+        def fake_extract(url):
+            return {"url": url, "title": "Titulo", "text": "Texto da noticia", "error": None}
+
+        def fake_call_agent(_client, _base_url, _method, _text):
+            return {"error": {"code": -32603, "message": "Falha simulada no agente"}}, 0.01
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                with patch("extractor.extract_article", fake_extract), patch(
+                    "orchestrator.main.call_agent", fake_call_agent
+                ):
+                    report = orchestrator.analyze(orchestrator.AnalyzeRequest(urls=["sample://tecnologia"]))
+            finally:
+                os.chdir(old_cwd)
+
+            item = report["resultados"][0]
+            self.assertIsNone(item["resumo"])
+            self.assertIsNone(item["sentimento"])
+            self.assertIsNone(item["categoria"])
+            self.assertIn("resumidor", item["erros_agentes"])
+
 
 class McpServerTest(unittest.TestCase):
     def test_mcp_resources_tools_and_prompt_are_callable(self):
-        self.assertIn("JSON-RPC 2.0", mcp_server.architecture())
-        self.assertIn("reports", mcp_server.reports_index())
-        self.assertIn("MCP", mcp_server.demo_script("professor"))
-        self.assertEqual(mcp_server.latest_report()["error"], "Nenhum relatório encontrado em reports/.")
+        with tempfile.TemporaryDirectory() as tmp:
+            old_cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                self.assertIn("JSON-RPC 2.0", mcp_server.architecture())
+                self.assertIn("reports", mcp_server.reports_index())
+                self.assertIn("MCP", mcp_server.demo_script("professor"))
+                self.assertEqual(mcp_server.latest_report()["error"], "Nenhum relatório encontrado em reports/.")
+            finally:
+                os.chdir(old_cwd)
 
 
 if __name__ == "__main__":

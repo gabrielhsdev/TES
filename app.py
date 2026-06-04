@@ -36,7 +36,7 @@ with col_btn:
     run = st.button("Analisar", type="primary", use_container_width=True)
 with col_info:
     st.caption(
-        "Use sample://tecnologia, sample://economia e sample://saude para demo offline sem consumir a API da Groq."
+        "Por padrão os agentes usam a API da Groq. Use AGENT_MODE=local no .env apenas para ensaios sem API."
     )
 
 if run:

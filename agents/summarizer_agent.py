@@ -18,13 +18,22 @@ app = FastAPI(title="Agente Resumidor")
 client = Groq(api_key=os.getenv("GROQ_API_KEY")) if Groq and os.getenv("GROQ_API_KEY") else None
 
 
+def use_local_mode() -> bool:
+    return os.getenv("AGENT_MODE", "llm").lower() == "local"
+
+
 def should_use_llm() -> bool:
-    return os.getenv("AGENT_MODE", "local").lower() == "llm" and client is not None
+    return not use_local_mode() and client is not None
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "agent": "summarizer", "mode": "llm" if should_use_llm() else "local"}
+    return {
+        "status": "ok",
+        "agent": "summarizer",
+        "mode": "local" if use_local_mode() else "llm",
+        "ready": use_local_mode() or client is not None,
+    }
 
 
 @app.post("/rpc")
@@ -36,8 +45,11 @@ def handle_rpc(request: JSONRPCRequest):
     if not text:
         return make_error_response(-32602, "Parâmetro 'text' obrigatório", request.id)
 
-    if not should_use_llm():
+    if use_local_mode():
         return make_success_response({"summary": summarize_locally(text), "mode": "local"}, request.id)
+
+    if not should_use_llm():
+        return make_error_response(-32603, "Configure GROQ_API_KEY ou use AGENT_MODE=local", request.id)
 
     try:
         response = client.chat.completions.create(
@@ -61,5 +73,5 @@ def handle_rpc(request: JSONRPCRequest):
         )
         summary = response.choices[0].message.content.strip()
         return make_success_response({"summary": summary, "mode": "llm"}, request.id)
-    except Exception:
-        return make_success_response({"summary": summarize_locally(text), "mode": "fallback_local"}, request.id)
+    except Exception as e:
+        return make_error_response(-32603, str(e), request.id)

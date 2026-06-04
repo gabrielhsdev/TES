@@ -19,13 +19,22 @@ app = FastAPI(title="Agente Categorizador")
 client = Groq(api_key=os.getenv("GROQ_API_KEY")) if Groq and os.getenv("GROQ_API_KEY") else None
 
 
+def use_local_mode() -> bool:
+    return os.getenv("AGENT_MODE", "llm").lower() == "local"
+
+
 def should_use_llm() -> bool:
-    return os.getenv("AGENT_MODE", "local").lower() == "llm" and client is not None
+    return not use_local_mode() and client is not None
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "agent": "categorizer", "mode": "llm" if should_use_llm() else "local"}
+    return {
+        "status": "ok",
+        "agent": "categorizer",
+        "mode": "local" if use_local_mode() else "llm",
+        "ready": use_local_mode() or client is not None,
+    }
 
 
 @app.post("/rpc")
@@ -37,8 +46,11 @@ def handle_rpc(request: JSONRPCRequest):
     if not text:
         return make_error_response(-32602, "Parâmetro 'text' obrigatório", request.id)
 
-    if not should_use_llm():
+    if use_local_mode():
         return make_success_response(categorize_locally(text), request.id)
+
+    if not should_use_llm():
+        return make_error_response(-32603, "Configure GROQ_API_KEY ou use AGENT_MODE=local", request.id)
 
     try:
         response = client.chat.completions.create(
@@ -79,5 +91,5 @@ def handle_rpc(request: JSONRPCRequest):
             result = {"categoria": categoria, "confianca": 0.7}
 
         return make_success_response(result, request.id)
-    except Exception:
-        return make_success_response(categorize_locally(text), request.id)
+    except Exception as e:
+        return make_error_response(-32603, str(e), request.id)

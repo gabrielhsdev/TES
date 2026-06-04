@@ -101,7 +101,7 @@ Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirad
 ## Pré-requisitos
 
 - Python 3.10+
-- Chave gratuita da [Groq](https://console.groq.com/keys) apenas se quiser usar `AGENT_MODE=llm`
+- Chave gratuita da [Groq](https://console.groq.com/keys)
 
 ## Instalação
 
@@ -121,8 +121,8 @@ pip install -r requirements.txt
 # 4. Configure as variáveis de ambiente
 cp .env.example .env
 # Windows PowerShell: Copy-Item .env.example .env
-# Por padrão AGENT_MODE=local roda a demo sem consumir API.
-# Para usar Groq, configure GROQ_API_KEY e altere AGENT_MODE=llm.
+# Por padrão AGENT_MODE=llm usa a API da Groq.
+# Para testar sem API, altere para AGENT_MODE=local.
 ```
 
 ## Como rodar
@@ -205,13 +205,13 @@ python -m compileall agents orchestrator shared app.py extractor.py mcp_server.p
 
 ## Modo seguro para demo
 
-Para evitar gastar limite gratuito da Groq durante ensaios e testes:
+Por padrão, a demo usa a API da Groq (`AGENT_MODE=llm`). Para evitar gastar limite durante ensaios:
 
-1. Mantenha `AGENT_MODE=local` no `.env`.
+1. Altere `AGENT_MODE=local` no `.env`.
 2. Use as URLs `sample://tecnologia`, `sample://economia` e `sample://saude`.
 3. Rode testes automatizados apenas quando houver mudança de código relevante.
 
-Com `AGENT_MODE=local`, cada agente responde de forma determinística usando regras simples. Se algum serviço de agente HTTP não estiver disponível, o orquestrador usa uma resposta local para não deixar campos vazios no relatório. Para demonstrar uso real de LLM, altere para `AGENT_MODE=llm` e configure `GROQ_API_KEY`.
+Com `AGENT_MODE=local`, cada agente responde usando regras simples. Esse modo serve apenas para ensaio e contingência. Para a entrega principal, deixe `AGENT_MODE=llm` e configure `GROQ_API_KEY`.
 
 ## Estrutura do Projeto
 

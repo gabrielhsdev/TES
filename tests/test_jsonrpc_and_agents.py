@@ -3,6 +3,7 @@ import os
 import unittest
 
 os.environ.setdefault("GROQ_API_KEY", "test-key")
+os.environ["AGENT_MODE"] = "local"
 
 from agents import categorizer_agent, sentiment_agent, summarizer_agent
 from shared.jsonrpc import JSONRPCRequest, make_error_response, make_success_response
@@ -114,6 +115,21 @@ class AgentValidationTest(unittest.TestCase):
         self.assertEqual(summary.result["mode"], "local")
         self.assertEqual(sentiment.result["sentimento"], "positivo")
         self.assertEqual(category.result["categoria"], "tecnologia")
+
+    def test_api_mode_is_default_and_does_not_use_local_without_env_flag(self):
+        os.environ.pop("AGENT_MODE", None)
+        old_client = summarizer_agent.client
+        summarizer_agent.client = None
+        try:
+            response = summarizer_agent.handle_rpc(
+                JSONRPCRequest(method="summarize", params={"text": "texto"}, id="api-default")
+            )
+        finally:
+            summarizer_agent.client = old_client
+
+        self.assertEqual(summarizer_agent.health()["mode"], "llm")
+        self.assertEqual(response.error.code, -32603)
+        self.assertIn("GROQ_API_KEY", response.error.message)
 
 
 if __name__ == "__main__":
