@@ -8,11 +8,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import Any, List
 import httpx
 from dotenv import load_dotenv
 from shared.jsonrpc import JSONRPCRequest
 from shared.blackboard import Blackboard
+from shared.news_analysis import analyze_sentiment_locally, categorize_locally, summarize_locally
 
 load_dotenv()
 
@@ -40,6 +41,16 @@ def call_agent(client: httpx.Client, base_url: str, method: str, text: str) -> t
     response = client.post(f"{base_url}/rpc", json=request.model_dump(), timeout=60.0)
     elapsed = round(time.perf_counter() - start, 3)
     return response.json(), elapsed
+
+
+def local_agent_result(method: str, text: str) -> Any:
+    if method == "summarize":
+        return summarize_locally(text)
+    if method == "analyze_sentiment":
+        return analyze_sentiment_locally(text)
+    if method == "categorize":
+        return categorize_locally(text)
+    return {}
 
 
 AGENT_STEPS = [
@@ -115,13 +126,17 @@ def analyze(body: AnalyzeRequest):
                 try:
                     resp, lat = call_agent(http, base_url, method, text)
                     item["latencia"][latency_key] = lat
-                    item[result_key] = extract_result(resp) if not resp.get("error") else None
-                    status = "concluido" if item[result_key] is not None else "erro"
+                    if resp.get("error"):
+                        item[result_key] = local_agent_result(method, text)
+                        status = "fallback_local"
+                    else:
+                        item[result_key] = extract_result(resp)
+                        status = "concluido" if item[result_key] is not None else "erro"
                     blackboard.record(url, stage, status, {"latencia_s": lat, "resultado": item[result_key]})
                 except Exception as e:
-                    item[result_key] = None
+                    item[result_key] = local_agent_result(method, text)
                     item["latencia"][latency_key] = -1
-                    blackboard.record(url, stage, "erro", {"erro": str(e)})
+                    blackboard.record(url, stage, "fallback_local", {"erro": str(e), "resultado": item[result_key]})
 
             item["latencia"]["total_s"] = round(
                 sum(v for v in item["latencia"].values() if isinstance(v, float) and v >= 0), 3
