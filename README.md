@@ -123,6 +123,7 @@ cp .env.example .env
 # Windows PowerShell: Copy-Item .env.example .env
 # Por padrão AGENT_MODE=llm usa a API da Groq.
 # Para testar sem API, altere para AGENT_MODE=local.
+# Substitua GROQ_API_KEY pela sua chave real antes da demo principal.
 ```
 
 ## Como rodar
@@ -169,7 +170,7 @@ curl -X POST http://localhost:8000/analyze \
   -d '{"urls": ["sample://tecnologia", "sample://economia", "sample://saude"]}'
 ```
 
-As URLs `sample://tecnologia`, `sample://economia` e `sample://saude` são notícias locais de demonstração. Elas permitem validar o pipeline completo sem rede externa e sem gastar limite gratuito da Groq. URLs HTTP/HTTPS continuam funcionando quando houver rede disponível.
+As URLs `sample://tecnologia`, `sample://economia` e `sample://saude` são notícias locais de demonstração. Elas evitam depender de sites externos para extrair texto. Se `AGENT_MODE=llm`, os agentes ainda usam a API da Groq para resumo, sentimento e categoria. Para ensaiar sem gastar API, altere temporariamente para `AGENT_MODE=local`.
 
 ### Usar MCP
 
@@ -187,6 +188,8 @@ Exemplo de chamada da tool `analyze_urls` no Inspector:
 {"urls": ["sample://tecnologia", "sample://economia", "sample://saude"]}
 ```
 
+Com `AGENT_MODE=llm`, essa chamada também usa a API da Groq. Use `AGENT_MODE=local` apenas se quiser testar o fluxo sem API.
+
 Para testar com o MCP Inspector:
 
 ```bash
@@ -198,8 +201,18 @@ No Inspector, conecte em `http://localhost:8004/mcp`.
 
 ## Testes
 
-```bash
+Para rodar os testes sem consumir a API:
+
+```powershell
+$env:AGENT_MODE='local'
 python -m unittest discover -s tests -v
+python -m compileall agents orchestrator shared app.py extractor.py mcp_server.py tests
+```
+
+Linux/Mac:
+
+```bash
+AGENT_MODE=local python -m unittest discover -s tests -v
 python -m compileall agents orchestrator shared app.py extractor.py mcp_server.py tests
 ```
 
