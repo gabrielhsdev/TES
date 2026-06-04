@@ -42,6 +42,34 @@ def call_agent(client: httpx.Client, base_url: str, method: str, text: str) -> t
     return response.json(), elapsed
 
 
+AGENT_STEPS = [
+    (
+        "resumidor",
+        "resumidor_s",
+        SUMMARIZER_URL,
+        "summarize",
+        "resumo",
+        lambda response: response.get("result", {}).get("summary"),
+    ),
+    (
+        "sentimento",
+        "sentimento_s",
+        SENTIMENT_URL,
+        "analyze_sentiment",
+        "sentimento",
+        lambda response: response.get("result"),
+    ),
+    (
+        "categorizador",
+        "categorizador_s",
+        CATEGORIZER_URL,
+        "categorize",
+        "categoria",
+        lambda response: response.get("result"),
+    ),
+]
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "orchestrator"}
@@ -83,35 +111,17 @@ def analyze(body: AnalyzeRequest):
 
             text = article["text"]
 
-            try:
-                resp, lat = call_agent(http, SUMMARIZER_URL, "summarize", text)
-                item["latencia"]["resumidor_s"] = lat
-                item["resumo"] = resp.get("result", {}).get("summary") if not resp.get("error") else None
-                blackboard.record(url, "resumidor", "concluido", {"latencia_s": lat, "resultado": item["resumo"]})
-            except Exception as e:
-                item["resumo"] = None
-                item["latencia"]["resumidor_s"] = -1
-                blackboard.record(url, "resumidor", "erro", {"erro": str(e)})
-
-            try:
-                resp, lat = call_agent(http, SENTIMENT_URL, "analyze_sentiment", text)
-                item["latencia"]["sentimento_s"] = lat
-                item["sentimento"] = resp.get("result") if not resp.get("error") else None
-                blackboard.record(url, "sentimento", "concluido", {"latencia_s": lat, "resultado": item["sentimento"]})
-            except Exception as e:
-                item["sentimento"] = None
-                item["latencia"]["sentimento_s"] = -1
-                blackboard.record(url, "sentimento", "erro", {"erro": str(e)})
-
-            try:
-                resp, lat = call_agent(http, CATEGORIZER_URL, "categorize", text)
-                item["latencia"]["categorizador_s"] = lat
-                item["categoria"] = resp.get("result") if not resp.get("error") else None
-                blackboard.record(url, "categorizador", "concluido", {"latencia_s": lat, "resultado": item["categoria"]})
-            except Exception as e:
-                item["categoria"] = None
-                item["latencia"]["categorizador_s"] = -1
-                blackboard.record(url, "categorizador", "erro", {"erro": str(e)})
+            for stage, latency_key, base_url, method, result_key, extract_result in AGENT_STEPS:
+                try:
+                    resp, lat = call_agent(http, base_url, method, text)
+                    item["latencia"][latency_key] = lat
+                    item[result_key] = extract_result(resp) if not resp.get("error") else None
+                    status = "concluido" if item[result_key] is not None else "erro"
+                    blackboard.record(url, stage, status, {"latencia_s": lat, "resultado": item[result_key]})
+                except Exception as e:
+                    item[result_key] = None
+                    item["latencia"][latency_key] = -1
+                    blackboard.record(url, stage, "erro", {"erro": str(e)})
 
             item["latencia"]["total_s"] = round(
                 sum(v for v in item["latencia"].values() if isinstance(v, float) and v >= 0), 3
