@@ -203,6 +203,16 @@ python -m unittest discover -s tests -v
 python -m compileall agents orchestrator shared app.py extractor.py mcp_server.py tests
 ```
 
+## Modo seguro para demo
+
+Para evitar gastar limite gratuito da Groq durante ensaios e testes:
+
+1. Mantenha `AGENT_MODE=local` no `.env`.
+2. Use as URLs `sample://tecnologia`, `sample://economia` e `sample://saude`.
+3. Rode testes automatizados apenas quando houver mudança de código relevante.
+
+Com `AGENT_MODE=local`, cada agente responde de forma determinística usando regras simples. Se algum serviço de agente HTTP não estiver disponível, o orquestrador usa um fallback local para não deixar campos vazios no relatório. Para demonstrar uso real de LLM, altere para `AGENT_MODE=llm` e configure `GROQ_API_KEY`.
+
 ## Estrutura do Projeto
 
 ```
