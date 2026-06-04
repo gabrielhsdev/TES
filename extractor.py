@@ -1,5 +1,9 @@
-import trafilatura
 import json
+
+try:
+    import trafilatura
+except ImportError:
+    trafilatura = None
 
 
 SAMPLE_ARTICLES = {
@@ -36,6 +40,14 @@ def extract_article(url: str) -> dict:
         if not article:
             return {"url": url, "title": None, "text": None, "error": "Amostra local não encontrada"}
         return {"url": url, "title": article["title"], "text": article["text"], "error": None}
+
+    if trafilatura is None:
+        return {
+            "url": url,
+            "title": None,
+            "text": None,
+            "error": "Dependência trafilatura não instalada; use sample:// para demo offline",
+        }
 
     downloaded = trafilatura.fetch_url(url)
     if not downloaded:
