@@ -1,4 +1,4 @@
-# Checkpoint 1 — Pipeline de Análise de Notícias Multi-Agente
+# Checkpoint 3 — Pipeline de Análise de Notícias Multi-Agente
 
 > Grupo 5 — Sistemas Multi-Agente | JSON-RPC 2.0 + Registro das etapas + MCP
 
@@ -108,7 +108,7 @@ Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirad
 ```bash
 # 1. Clone o repositório
 git clone <url-do-repo>
-cd checkpoint2
+cd checkpoint3
 
 # 2. Crie e ative um ambiente virtual
 python -m venv .venv
@@ -229,7 +229,7 @@ Com `AGENT_MODE=local`, cada agente responde usando regras simples. Esse modo se
 ## Estrutura do Projeto
 
 ```
-checkpoint2/
+checkpoint3/
 ├── agents/
 │   ├── summarizer_agent.py   # FastAPI — porta 8001
 │   ├── sentiment_agent.py    # FastAPI — porta 8002
