@@ -120,6 +120,7 @@ pip install -r requirements.txt
 
 # 4. Configure as variáveis de ambiente
 cp .env.example .env
+# Windows PowerShell: Copy-Item .env.example .env
 # Edite .env e adicione sua GROQ_API_KEY
 ```
 
@@ -129,7 +130,13 @@ cp .env.example .env
 bash start.sh
 ```
 
-O script inicia os 4 serviços principais (portas 8000–8003), o servidor MCP HTTP em `http://localhost:8004/mcp` e abre o Streamlit em `http://localhost:8501`.
+No Windows PowerShell:
+
+```powershell
+.\start.ps1
+```
+
+Os scripts iniciam os 4 serviços principais (portas 8000–8003), o servidor MCP HTTP em `http://localhost:8004/mcp` e abrem o Streamlit em `http://localhost:8501`.
 
 ### Rodar manualmente (alternativa)
 
@@ -207,6 +214,7 @@ checkpoint2/
 ├── reports/                  # Relatórios JSON gerados automaticamente
 ├── requirements.txt
 ├── .env.example
+├── start.ps1
 ├── start.sh
 └── README.md
 ```
