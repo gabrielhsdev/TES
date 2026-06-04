@@ -101,7 +101,7 @@ Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirad
 ## Pré-requisitos
 
 - Python 3.10+
-- Chave gratuita da [Groq](https://console.groq.com/keys)
+- Chave gratuita da [Groq](https://console.groq.com/keys) apenas se quiser usar `AGENT_MODE=llm`
 
 ## Instalação
 
@@ -121,7 +121,8 @@ pip install -r requirements.txt
 # 4. Configure as variáveis de ambiente
 cp .env.example .env
 # Windows PowerShell: Copy-Item .env.example .env
-# Edite .env e adicione sua GROQ_API_KEY
+# Por padrão AGENT_MODE=local roda a demo sem consumir API.
+# Para usar Groq, configure GROQ_API_KEY e altere AGENT_MODE=llm.
 ```
 
 ## Como rodar
@@ -165,8 +166,10 @@ streamlit run app.py
 ```bash
 curl -X POST http://localhost:8000/analyze \
   -H "Content-Type: application/json" \
-  -d '{"urls": ["https://www.bbc.com/portuguese/articles/c5y3r0r4r0go"]}'
+  -d '{"urls": ["sample://tecnologia", "sample://economia", "sample://saude"]}'
 ```
+
+As URLs `sample://tecnologia`, `sample://economia` e `sample://saude` são notícias locais de demonstração. Elas permitem validar o pipeline completo sem rede externa e sem gastar limite gratuito da Groq. URLs HTTP/HTTPS continuam funcionando quando houver rede disponível.
 
 ### Usar MCP
 
@@ -177,6 +180,12 @@ O servidor MCP expõe:
 - Tool `analyze_urls`: executa o pipeline para uma lista de URLs.
 - Tool `latest_report`: retorna o relatório JSON mais recente.
 - Prompt `demo_script`: gera um roteiro curto para apresentação.
+
+Exemplo de chamada da tool `analyze_urls` no Inspector:
+
+```json
+{"urls": ["sample://tecnologia", "sample://economia", "sample://saude"]}
+```
 
 Para testar com o MCP Inspector:
 

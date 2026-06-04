@@ -6,16 +6,21 @@ from fastapi import FastAPI
 from groq import Groq
 from dotenv import load_dotenv
 from shared.jsonrpc import JSONRPCRequest, make_success_response, make_error_response
+from shared.news_analysis import summarize_locally
 
 load_dotenv()
 
 app = FastAPI(title="Agente Resumidor")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY")) if os.getenv("GROQ_API_KEY") else None
+
+
+def should_use_llm() -> bool:
+    return os.getenv("AGENT_MODE", "local").lower() == "llm" and client is not None
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "agent": "summarizer"}
+    return {"status": "ok", "agent": "summarizer", "mode": "llm" if should_use_llm() else "local"}
 
 
 @app.post("/rpc")
@@ -26,6 +31,9 @@ def handle_rpc(request: JSONRPCRequest):
     text = request.params.get("text", "")
     if not text:
         return make_error_response(-32602, "Parâmetro 'text' obrigatório", request.id)
+
+    if not should_use_llm():
+        return make_success_response({"summary": summarize_locally(text), "mode": "local"}, request.id)
 
     try:
         response = client.chat.completions.create(
@@ -48,6 +56,6 @@ def handle_rpc(request: JSONRPCRequest):
             temperature=0.3,
         )
         summary = response.choices[0].message.content.strip()
-        return make_success_response({"summary": summary}, request.id)
-    except Exception as e:
-        return make_error_response(-32603, str(e), request.id)
+        return make_success_response({"summary": summary, "mode": "llm"}, request.id)
+    except Exception:
+        return make_success_response({"summary": summarize_locally(text), "mode": "fallback_local"}, request.id)

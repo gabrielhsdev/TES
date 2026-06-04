@@ -60,6 +60,9 @@ class JsonRpcContractTest(unittest.TestCase):
 
 
 class AgentValidationTest(unittest.TestCase):
+    def tearDown(self):
+        os.environ["AGENT_MODE"] = "local"
+
     def test_agents_reject_unknown_method(self):
         request = JSONRPCRequest(method="unknown", params={"text": "noticia"}, id="1")
 
@@ -81,6 +84,7 @@ class AgentValidationTest(unittest.TestCase):
                 self.assertEqual(response.error.code, -32602)
 
     def test_agents_return_structured_success_with_mocked_llm(self):
+        os.environ["AGENT_MODE"] = "llm"
         summarizer_agent.client = _FakeClient("Resumo curto em tres frases.")
         sentiment_agent.client = _FakeClient(
             json.dumps({"sentimento": "neutro", "confianca": 0.9, "justificativa": "Tom informativo."})
@@ -95,6 +99,20 @@ class AgentValidationTest(unittest.TestCase):
 
         self.assertEqual(summary.result["summary"], "Resumo curto em tres frases.")
         self.assertEqual(sentiment.result["sentimento"], "neutro")
+        self.assertEqual(category.result["categoria"], "tecnologia")
+
+    def test_agents_work_locally_without_consuming_llm_api(self):
+        os.environ["AGENT_MODE"] = "local"
+        text = "A tecnologia melhora processos e gera avanço positivo para empresas."
+
+        summary = summarizer_agent.handle_rpc(JSONRPCRequest(method="summarize", params={"text": text}, id="1"))
+        sentiment = sentiment_agent.handle_rpc(
+            JSONRPCRequest(method="analyze_sentiment", params={"text": text}, id="2")
+        )
+        category = categorizer_agent.handle_rpc(JSONRPCRequest(method="categorize", params={"text": text}, id="3"))
+
+        self.assertEqual(summary.result["mode"], "local")
+        self.assertEqual(sentiment.result["sentimento"], "positivo")
         self.assertEqual(category.result["categoria"], "tecnologia")
 
 

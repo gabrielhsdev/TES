@@ -7,16 +7,21 @@ from fastapi import FastAPI
 from groq import Groq
 from dotenv import load_dotenv
 from shared.jsonrpc import JSONRPCRequest, make_success_response, make_error_response
+from shared.news_analysis import analyze_sentiment_locally
 
 load_dotenv()
 
 app = FastAPI(title="Agente de Sentimento")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY")) if os.getenv("GROQ_API_KEY") else None
+
+
+def should_use_llm() -> bool:
+    return os.getenv("AGENT_MODE", "local").lower() == "llm" and client is not None
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "agent": "sentiment"}
+    return {"status": "ok", "agent": "sentiment", "mode": "llm" if should_use_llm() else "local"}
 
 
 @app.post("/rpc")
@@ -27,6 +32,9 @@ def handle_rpc(request: JSONRPCRequest):
     text = request.params.get("text", "")
     if not text:
         return make_error_response(-32602, "Parâmetro 'text' obrigatório", request.id)
+
+    if not should_use_llm():
+        return make_success_response(analyze_sentiment_locally(text), request.id)
 
     try:
         response = client.chat.completions.create(
@@ -69,5 +77,5 @@ def handle_rpc(request: JSONRPCRequest):
             result = {"sentimento": sentimento, "confianca": 0.7, "justificativa": raw[:120]}
 
         return make_success_response(result, request.id)
-    except Exception as e:
-        return make_error_response(-32603, str(e), request.id)
+    except Exception:
+        return make_success_response(analyze_sentiment_locally(text), request.id)

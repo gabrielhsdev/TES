@@ -7,6 +7,7 @@ from unittest.mock import patch
 os.environ.setdefault("GROQ_API_KEY", "test-key")
 
 import mcp_server
+from extractor import extract_article
 from orchestrator import main as orchestrator
 from shared.blackboard import Blackboard
 
@@ -24,6 +25,14 @@ class BlackboardTest(unittest.TestCase):
                 data = json.load(file)
             self.assertEqual(data["total_events"], 1)
             self.assertEqual(data["events"][0]["stage"], "extrator")
+
+
+class ExtractorSampleTest(unittest.TestCase):
+    def test_sample_urls_allow_offline_demo(self):
+        article = extract_article("sample://tecnologia")
+
+        self.assertIsNone(article["error"])
+        self.assertIn("inteligência artificial", article["text"])
 
 
 class OrchestratorFlowTest(unittest.TestCase):

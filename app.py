@@ -28,14 +28,16 @@ with st.expander("Arquitetura e protocolos da demo"):
 urls_input = st.text_area(
     "URLs das notícias (uma por linha)",
     height=150,
-    placeholder="https://www.bbc.com/portuguese/articles/...\nhttps://g1.globo.com/...",
+    placeholder="sample://tecnologia\nsample://economia\nsample://saude",
 )
 
 col_btn, col_info = st.columns([1, 4])
 with col_btn:
     run = st.button("Analisar", type="primary", use_container_width=True)
 with col_info:
-    st.caption("Cada URL passa pelo orquestrador → agente resumidor → agente de sentimento → agente categorizador")
+    st.caption(
+        "Use sample://tecnologia, sample://economia e sample://saude para demo offline sem consumir a API da Groq."
+    )
 
 if run:
     urls = [u.strip() for u in urls_input.strip().splitlines() if u.strip()]
