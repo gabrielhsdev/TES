@@ -3,15 +3,19 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
-from groq import Groq
 from dotenv import load_dotenv
 from shared.jsonrpc import JSONRPCRequest, make_success_response, make_error_response
 from shared.news_analysis import summarize_locally
 
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
+
 load_dotenv()
 
 app = FastAPI(title="Agente Resumidor")
-client = Groq(api_key=os.getenv("GROQ_API_KEY")) if os.getenv("GROQ_API_KEY") else None
+client = Groq(api_key=os.getenv("GROQ_API_KEY")) if Groq and os.getenv("GROQ_API_KEY") else None
 
 
 def should_use_llm() -> bool:
