@@ -1,11 +1,11 @@
 # Checkpoint 1 — Pipeline de Análise de Notícias Multi-Agente
 
-> Grupo 5 — Sistemas Multi-Agente | JSON-RPC 2.0 + Blackboard + MCP
+> Grupo 5 — Sistemas Multi-Agente | JSON-RPC 2.0 + Registro das etapas + MCP
 
 ## Objetivo
 
 Prova de conceito de um pipeline de análise de notícias baseado em sistemas multi-agente.
-Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirado no A2A) para processar URLs de notícias e retornar resumo, sentimento e categoria de forma estruturada. A versão atual também inclui um **blackboard** simples para estados intermediários e um servidor **MCP** para expor recursos, ferramentas e prompts a clientes de LLM.
+Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirado no A2A) para processar URLs de notícias e retornar resumo, sentimento e categoria de forma estruturada. A versão atual também inclui um **registro das etapas** e um servidor **MCP** para expor recursos, ferramentas e prompts a clientes de LLM.
 
 ## Arquitetura
 
@@ -20,11 +20,11 @@ Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirad
 │              Orquestrador (FastAPI)                  │
 │                 localhost:8000                       │
 │                                                      │
-│  1. Extrai conteúdo de cada URL (trafilatura)        │
+│  1. Extrai conteúdo de cada URL                      │
 │  2. Distribui texto para os 3 agentes via JSON-RPC   │
 │  3. Consolida resultados + mede latência por agente  │
 │  4. Persiste relatório JSON em /reports/             │
-│  5. Persiste blackboard JSON por execução            │
+│  5. Persiste registro JSON por execução              │
 └────────┬────────────────┬───────────────┬────────────┘
          │ JSON-RPC 2.0   │ JSON-RPC 2.0  │ JSON-RPC 2.0
          ▼                ▼               ▼
@@ -93,9 +93,9 @@ Agentes especializados cooperam por meio do protocolo **JSON-RPC 2.0** (inspirad
 | Comunicação inter-agentes | HTTP + JSON-RPC 2.0 |
 | Integração com clientes LLM | MCP (`mcp[cli]` + FastMCP) |
 | Validação de dados | Pydantic v2 |
-| Extração de conteúdo | trafilatura |
+| Extração de conteúdo | Extrator de texto de páginas |
 | Interface | Streamlit |
-| Persistência | Relatórios e blackboards JSON em `/reports/` |
+| Persistência | Relatórios e registros das etapas em `/reports/` |
 | Variáveis de ambiente | python-dotenv |
 
 ## Pré-requisitos
@@ -211,7 +211,7 @@ Para evitar gastar limite gratuito da Groq durante ensaios e testes:
 2. Use as URLs `sample://tecnologia`, `sample://economia` e `sample://saude`.
 3. Rode testes automatizados apenas quando houver mudança de código relevante.
 
-Com `AGENT_MODE=local`, cada agente responde de forma determinística usando regras simples. Se algum serviço de agente HTTP não estiver disponível, o orquestrador usa um fallback local para não deixar campos vazios no relatório. Para demonstrar uso real de LLM, altere para `AGENT_MODE=llm` e configure `GROQ_API_KEY`.
+Com `AGENT_MODE=local`, cada agente responde de forma determinística usando regras simples. Se algum serviço de agente HTTP não estiver disponível, o orquestrador usa uma resposta local para não deixar campos vazios no relatório. Para demonstrar uso real de LLM, altere para `AGENT_MODE=llm` e configure `GROQ_API_KEY`.
 
 ## Estrutura do Projeto
 
@@ -224,9 +224,9 @@ checkpoint2/
 ├── orchestrator/
 │   └── main.py               # FastAPI — porta 8000
 ├── shared/
-│   ├── blackboard.py         # Registro de estados/resultados intermediários
+│   ├── blackboard.py         # Registro das etapas em JSON
 │   └── jsonrpc.py            # Modelos Pydantic JSON-RPC 2.0
-├── extractor.py              # Extração de conteúdo via trafilatura
+├── extractor.py              # Extração de texto das notícias
 ├── app.py                    # Interface Streamlit
 ├── mcp_server.py             # Servidor MCP com resources, tools e prompt
 ├── tests/                    # Testes com mocks para fluxo principal
