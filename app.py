@@ -9,10 +9,21 @@ st.set_page_config(page_title="Analisador de Notícias", page_icon="📰", layou
 st.title("Analisador de Notícias Multi-Agente")
 st.markdown(
     "Pipeline baseado em sistemas multi-agente com comunicação via **JSON-RPC 2.0**. "
-    "Agentes especializados cooperam para resumir, classificar sentimento e categorizar notícias."
+    "Agentes especializados cooperam para resumir, classificar sentimento e categorizar notícias. "
+    "O projeto também expõe contexto e ferramentas via **MCP** para demonstrar integração vertical com LLMs."
 )
 
 st.divider()
+
+with st.expander("Arquitetura e protocolos da demo"):
+    st.markdown(
+        """
+        - **Orquestrador:** recebe URLs, extrai texto, chama agentes e consolida o relatório.
+        - **JSON-RPC 2.0:** contrato horizontal entre orquestrador e agentes independentes.
+        - **Registro das etapas:** arquivo JSON com eventos intermediários por URL e etapa.
+        - **MCP:** servidor em `mcp_server.py` expondo recursos, ferramentas e prompts para clientes de LLM.
+        """
+    )
 
 urls_input = st.text_area(
     "URLs das notícias (uma por linha)",
@@ -24,7 +35,7 @@ col_btn, col_info = st.columns([1, 4])
 with col_btn:
     run = st.button("Analisar", type="primary", use_container_width=True)
 with col_info:
-    st.caption("Cada URL passa pelo orquestrador → agente resumidor → agente de sentimento → agente categorizador")
+    st.caption("Cada URL passa pelo orquestrador e pelos agentes de resumo, sentimento e categoria.")
 
 if run:
     urls = [u.strip() for u in urls_input.strip().splitlines() if u.strip()]
@@ -50,6 +61,8 @@ if run:
             st.stop()
 
     st.success(f"Análise concluída! Relatório salvo em `{data.get('arquivo', 'N/A')}`")
+    if data.get("blackboard"):
+        st.caption(f"Registro das etapas salvo em `{data['blackboard']}`")
     st.divider()
 
     SENTIMENT_EMOJI = {"positivo": "😊", "neutro": "😐", "negativo": "😟"}

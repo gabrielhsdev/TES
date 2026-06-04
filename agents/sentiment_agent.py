@@ -4,19 +4,37 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
-from groq import Groq
 from dotenv import load_dotenv
 from shared.jsonrpc import JSONRPCRequest, make_success_response, make_error_response
+from shared.news_analysis import analyze_sentiment_locally
+
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
 
 load_dotenv()
 
 app = FastAPI(title="Agente de Sentimento")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY")) if Groq and os.getenv("GROQ_API_KEY") else None
+
+
+def use_local_mode() -> bool:
+    return os.getenv("AGENT_MODE", "llm").lower() == "local"
+
+
+def should_use_llm() -> bool:
+    return not use_local_mode() and client is not None
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "agent": "sentiment"}
+    return {
+        "status": "ok",
+        "agent": "sentiment",
+        "mode": "local" if use_local_mode() else "llm",
+        "ready": use_local_mode() or client is not None,
+    }
 
 
 @app.post("/rpc")
@@ -27,6 +45,12 @@ def handle_rpc(request: JSONRPCRequest):
     text = request.params.get("text", "")
     if not text:
         return make_error_response(-32602, "Parâmetro 'text' obrigatório", request.id)
+
+    if use_local_mode():
+        return make_success_response(analyze_sentiment_locally(text), request.id)
+
+    if not should_use_llm():
+        return make_error_response(-32603, "Configure GROQ_API_KEY ou use AGENT_MODE=local", request.id)
 
     try:
         response = client.chat.completions.create(

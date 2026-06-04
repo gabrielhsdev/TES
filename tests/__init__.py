@@ -1,0 +1,1 @@
+"""Testes funcionais do checkpoint."""
