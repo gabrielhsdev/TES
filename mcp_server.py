@@ -8,7 +8,12 @@ from mcp.server.fastmcp import FastMCP
 from orchestrator.main import AnalyzeRequest, analyze
 
 
-mcp = FastMCP("Grupo 5 News MAS", json_response=True)
+mcp = FastMCP(
+    "Grupo 5 News MAS",
+    host=os.getenv("MCP_HOST", "127.0.0.1"),
+    port=int(os.getenv("MCP_PORT", "8004")),
+    json_response=True,
+)
 
 
 def _load_json(path: str) -> dict[str, Any]:
