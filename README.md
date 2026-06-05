@@ -2,6 +2,9 @@
 
 > Grupo 5 — Sistemas Multi-Agente | JSON-RPC 2.0 + Registro das etapas + MCP
 
+## Demo
+![Demo](demo.gif)
+
 ## Objetivo
 
 Prova de conceito de um pipeline de análise de notícias baseado em sistemas multi-agente.
